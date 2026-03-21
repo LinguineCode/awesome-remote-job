@@ -1,0 +1,83 @@
+# ============================================================
+# BizBuySell Listing Scanner - Configuration
+# ============================================================
+# Edit this file to control what listings you see.
+# Run: python scanner.py
+# ============================================================
+
+# --- Price Filters ---
+# Set to null or remove to disable a filter
+price:
+  min: null          # e.g. 50000
+  max: null          # e.g. 500000
+
+# --- Cash Flow / Revenue Filters ---
+cash_flow:
+  min: null          # Minimum annual cash flow, e.g. 100000
+  max: null
+
+gross_revenue:
+  min: null          # Minimum annual gross revenue, e.g. 200000
+  max: null
+
+# --- Industry / Category ---
+# Pick from bizbuysell categories. Use the URL slug format.
+# Examples:
+#   - restaurants-and-food
+#   - websites-and-ecommerce
+#   - manufacturing
+#   - retail
+#   - automotive
+#   - health-care
+#   - construction
+#   - services
+#   - transportation
+#   - wholesale
+#   - education
+# Leave empty [] to search ALL categories (nationwide, all industries).
+categories:
+  - restaurants-and-food
+  - websites-and-ecommerce
+
+# --- Location ---
+# Filter by US states. Use the URL slug format (lowercase, hyphenated).
+# Examples: california, new-york, texas, florida
+# Leave empty [] for nationwide (all states).
+states: []
+
+# --- Keyword Filters ---
+# Only show listings whose title OR description contains ANY of these words.
+# Leave empty [] to show all listings (no keyword filter).
+keywords_include: []
+  # - "franchise"
+  # - "SaaS"
+  # - "absentee"
+  # - "semi-absentee"
+
+# Exclude listings whose title or description contains ANY of these words.
+keywords_exclude: []
+  # - "broker"
+  # - "consulting"
+
+# --- Listing Age ---
+# Only show listings posted within the last N days.
+# Set to null to show all listings regardless of age.
+max_listing_age_days: 7
+
+# --- Output Settings ---
+output:
+  # Directory where reports are saved (relative to this config file)
+  directory: ./reports
+  # Formats to generate
+  html: true
+  csv: true
+
+# --- Scanner Settings ---
+scanner:
+  # Max number of listing pages to scan per category/state combo
+  max_pages: 10
+  # Delay between requests (seconds) - be respectful to the server
+  min_delay: 2
+  max_delay: 5
+  # Run headless (no visible browser window)
+  headless: true

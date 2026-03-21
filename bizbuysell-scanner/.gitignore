@@ -1,0 +1,5 @@
+reports/
+.seen_listings.json
+__pycache__/
+*.pyc
+.venv/
