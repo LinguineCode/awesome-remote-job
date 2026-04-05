@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SearchProfile } from "@/types";
+import { api } from "@/lib/api";
 
 const COMMON_MAKES = [
   "Acura", "Alfa Romeo", "Aston Martin", "Audi", "BMW", "Buick", "Cadillac",
@@ -42,21 +43,20 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
     name: initialData?.name || "",
     makes: initialData?.makes?.join(", ") || "",
     models: initialData?.models?.join(", ") || "",
-    year_min: initialData?.year_min?.toString() || "",
-    year_max: initialData?.year_max?.toString() || "",
-    price_min: initialData?.price_min?.toString() || "",
-    price_max: initialData?.price_max?.toString() || "",
-    mileage_max: initialData?.mileage_max?.toString() || "",
+    yearMin: initialData?.yearMin?.toString() || "",
+    yearMax: initialData?.yearMax?.toString() || "",
+    priceMin: initialData?.priceMin?.toString() || "",
+    priceMax: initialData?.priceMax?.toString() || "",
+    mileageMax: initialData?.mileageMax?.toString() || "",
     transmission: initialData?.transmission || "",
     drivetrain: initialData?.drivetrain || "",
     colors: initialData?.colors?.join(", ") || "",
-    zip_code: initialData?.zip_code || "",
-    search_radius_miles: initialData?.search_radius_miles?.toString() || "100",
+    zipCode: initialData?.zipCode || "",
+    searchRadiusMiles: initialData?.searchRadiusMiles?.toString() || "100",
     states: initialData?.states?.join(", ") || "",
-    exclude_dealers: initialData?.exclude_dealers ?? false,
-    exclude_salvage: initialData?.exclude_salvage ?? true,
-    require_photos: initialData?.require_photos ?? true,
-    ai_notes: initialData?.ai_notes || "",
+    excludeDealers: initialData?.excludeDealers ?? false,
+    excludeSalvage: initialData?.excludeSalvage ?? true,
+    aiNotes: initialData?.aiNotes || "",
   });
 
   const updateField = (field: string, value: string | boolean) => {
@@ -77,37 +77,31 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
       models: form.models
         ? form.models.split(",").map((s) => s.trim()).filter(Boolean)
         : null,
-      year_min: form.year_min ? parseInt(form.year_min) : null,
-      year_max: form.year_max ? parseInt(form.year_max) : null,
-      price_min: form.price_min ? parseInt(form.price_min) : null,
-      price_max: form.price_max ? parseInt(form.price_max) : null,
-      mileage_max: form.mileage_max ? parseInt(form.mileage_max) : null,
+      yearMin: form.yearMin ? parseInt(form.yearMin) : null,
+      yearMax: form.yearMax ? parseInt(form.yearMax) : null,
+      priceMin: form.priceMin ? parseInt(form.priceMin) : null,
+      priceMax: form.priceMax ? parseInt(form.priceMax) : null,
+      mileageMax: form.mileageMax ? parseInt(form.mileageMax) : null,
       transmission: form.transmission || null,
       drivetrain: form.drivetrain || null,
       colors: form.colors
         ? form.colors.split(",").map((s) => s.trim()).filter(Boolean)
         : null,
-      zip_code: form.zip_code || null,
-      search_radius_miles: parseInt(form.search_radius_miles) || 100,
+      zipCode: form.zipCode || null,
+      searchRadiusMiles: parseInt(form.searchRadiusMiles) || 100,
       states: form.states
         ? form.states.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean)
         : null,
-      exclude_dealers: form.exclude_dealers,
-      exclude_salvage: form.exclude_salvage,
-      require_photos: form.require_photos,
-      ai_notes: form.ai_notes || null,
+      excludeDealers: form.excludeDealers,
+      excludeSalvage: form.excludeSalvage,
+      aiNotes: form.aiNotes || null,
     };
 
     try {
-      const response = await fetch("/api/searches", {
-        method: mode === "edit" ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to save");
+      if (mode === "edit") {
+        await api.updateSearch(payload);
+      } else {
+        await api.createSearch(payload);
       }
 
       router.push("/searches");
@@ -186,8 +180,8 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
           <input
             type="number"
             placeholder="e.g., 2005"
-            value={form.year_min}
-            onChange={(e) => updateField("year_min", e.target.value)}
+            value={form.yearMin}
+            onChange={(e) => updateField("yearMin", e.target.value)}
             className={inputClass}
             min="1900"
             max="2027"
@@ -198,8 +192,8 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
           <input
             type="number"
             placeholder="e.g., 2012"
-            value={form.year_max}
-            onChange={(e) => updateField("year_max", e.target.value)}
+            value={form.yearMax}
+            onChange={(e) => updateField("yearMax", e.target.value)}
             className={inputClass}
             min="1900"
             max="2027"
@@ -214,8 +208,8 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
           <input
             type="number"
             placeholder="e.g., 20000"
-            value={form.price_min}
-            onChange={(e) => updateField("price_min", e.target.value)}
+            value={form.priceMin}
+            onChange={(e) => updateField("priceMin", e.target.value)}
             className={inputClass}
             min="0"
           />
@@ -225,8 +219,8 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
           <input
             type="number"
             placeholder="e.g., 60000"
-            value={form.price_max}
-            onChange={(e) => updateField("price_max", e.target.value)}
+            value={form.priceMax}
+            onChange={(e) => updateField("priceMax", e.target.value)}
             className={inputClass}
             min="0"
           />
@@ -239,8 +233,8 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
         <input
           type="number"
           placeholder="e.g., 75000"
-          value={form.mileage_max}
-          onChange={(e) => updateField("mileage_max", e.target.value)}
+          value={form.mileageMax}
+          onChange={(e) => updateField("mileageMax", e.target.value)}
           className={inputClass}
           min="0"
         />
@@ -300,8 +294,8 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
           <input
             type="text"
             placeholder="e.g., 90210"
-            value={form.zip_code}
-            onChange={(e) => updateField("zip_code", e.target.value)}
+            value={form.zipCode}
+            onChange={(e) => updateField("zipCode", e.target.value)}
             className={inputClass}
             maxLength={5}
           />
@@ -310,9 +304,9 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
           <label className={labelClass}>Search Radius (mi)</label>
           <input
             type="number"
-            value={form.search_radius_miles}
+            value={form.searchRadiusMiles}
             onChange={(e) =>
-              updateField("search_radius_miles", e.target.value)
+              updateField("searchRadiusMiles", e.target.value)
             }
             className={inputClass}
             min="10"
@@ -341,8 +335,8 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
           <label className="flex items-center gap-3">
             <input
               type="checkbox"
-              checked={form.exclude_dealers}
-              onChange={(e) => updateField("exclude_dealers", e.target.checked)}
+              checked={form.excludeDealers}
+              onChange={(e) => updateField("excludeDealers", e.target.checked)}
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <span className="text-sm text-gray-700">
@@ -352,23 +346,12 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
           <label className="flex items-center gap-3">
             <input
               type="checkbox"
-              checked={form.exclude_salvage}
-              onChange={(e) => updateField("exclude_salvage", e.target.checked)}
+              checked={form.excludeSalvage}
+              onChange={(e) => updateField("excludeSalvage", e.target.checked)}
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <span className="text-sm text-gray-700">
               Exclude salvage/rebuilt titles
-            </span>
-          </label>
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={form.require_photos}
-              onChange={(e) => updateField("require_photos", e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">
-              Require photos
             </span>
           </label>
         </div>
@@ -381,8 +364,8 @@ export function SearchForm({ initialData, mode }: SearchFormProps) {
           <span className="text-blue-600 font-normal">(the magic)</span>
         </label>
         <textarea
-          value={form.ai_notes}
-          onChange={(e) => updateField("ai_notes", e.target.value)}
+          value={form.aiNotes}
+          onChange={(e) => updateField("aiNotes", e.target.value)}
           className={`${inputClass} min-h-[120px]`}
           placeholder={`Describe exactly what you want in plain English. Our AI will evaluate every listing against these notes.
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,17 +16,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Login failed");
-      }
-
+      await api.login(email);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -52,10 +43,7 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email address
             </label>
             <input
@@ -81,7 +69,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-xs text-gray-500">
           By continuing, you agree to receive daily car listing emails.
-          You can unsubscribe anytime.
+          You can unsubscribe anytime from any email.
         </p>
       </div>
     </div>

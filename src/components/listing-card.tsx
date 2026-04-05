@@ -16,12 +16,12 @@ const FLAG_COLORS: Record<string, { bg: string; text: string }> = {
 
 interface ListingCardProps {
   result: SearchResult & { listing: Listing };
-  onRate?: (resultId: string, rating: string) => void;
+  onRate?: (searchProfileId: string, listingUrl: string, rating: string) => void;
 }
 
 export function ListingCard({ result, onRate }: ListingCardProps) {
   const l = result.listing;
-  const scorePercent = Math.round((result.ai_score || 0) * 100);
+  const scorePercent = Math.round((result.aiScore || 0) * 100);
   const scoreColor =
     scorePercent >= 80
       ? "text-green-700 bg-green-50 ring-green-200"
@@ -32,10 +32,9 @@ export function ListingCard({ result, onRate }: ListingCardProps) {
   return (
     <div className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-all duration-200">
       <div className="flex gap-4">
-        {/* Thumbnail */}
-        {l.image_urls?.[0] ? (
+        {l.imageUrls?.[0] ? (
           <img
-            src={l.image_urls[0]}
+            src={l.imageUrls[0]}
             alt={l.title || "Car"}
             className="h-24 w-32 rounded-lg object-cover flex-shrink-0"
           />
@@ -45,69 +44,50 @@ export function ListingCard({ result, onRate }: ListingCardProps) {
           </div>
         )}
 
-        {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h3 className="font-semibold text-gray-900 truncate">
                 {l.year ? `${l.year} ` : ""}
                 {l.make || ""} {l.model || ""}
-                {l.trim_level && (
-                  <span className="font-normal text-gray-500">
-                    {" "}
-                    {l.trim_level}
-                  </span>
+                {l.trimLevel && (
+                  <span className="font-normal text-gray-500"> {l.trimLevel}</span>
                 )}
               </h3>
               <div className="mt-1 flex items-center gap-2 text-sm text-gray-600">
                 <span className="font-semibold text-gray-900">
                   {l.price ? `$${l.price.toLocaleString()}` : "Price N/A"}
                 </span>
-                <span className="text-gray-300">·</span>
-                <span>
-                  {l.mileage
-                    ? `${l.mileage.toLocaleString()} mi`
-                    : "Mileage N/A"}
-                </span>
+                <span className="text-gray-300">&middot;</span>
+                <span>{l.mileage ? `${l.mileage.toLocaleString()} mi` : "Mileage N/A"}</span>
                 {l.transmission && (
                   <>
-                    <span className="text-gray-300">·</span>
+                    <span className="text-gray-300">&middot;</span>
                     <span className="capitalize">{l.transmission}</span>
                   </>
                 )}
               </div>
               <p className="mt-0.5 text-xs text-gray-500">
-                {l.location || "Location unknown"} · {l.source}
+                {l.location || "Location unknown"} &middot; {l.source}
               </p>
             </div>
-
-            <span
-              className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${scoreColor}`}
-            >
+            <span className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${scoreColor}`}>
               {scorePercent}%
             </span>
           </div>
 
-          {/* AI Summary */}
-          {result.ai_summary && (
+          {result.aiSummary && (
             <p className="mt-3 text-sm text-gray-700 bg-blue-50 border-l-3 border-blue-500 px-3 py-2 rounded-r-lg leading-relaxed">
-              {result.ai_summary}
+              {result.aiSummary}
             </p>
           )}
 
-          {/* Flags */}
-          {result.ai_flags && result.ai_flags.length > 0 && (
+          {result.aiFlags && result.aiFlags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {result.ai_flags.map((flag) => {
-                const colors = FLAG_COLORS[flag] || {
-                  bg: "bg-gray-100",
-                  text: "text-gray-700",
-                };
+              {result.aiFlags.map((flag) => {
+                const colors = FLAG_COLORS[flag] || { bg: "bg-gray-100", text: "text-gray-700" };
                 return (
-                  <span
-                    key={flag}
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colors.bg} ${colors.text}`}
-                  >
+                  <span key={flag} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colors.bg} ${colors.text}`}>
                     {flag.replace(/_/g, " ")}
                   </span>
                 );
@@ -115,7 +95,6 @@ export function ListingCard({ result, onRate }: ListingCardProps) {
             </div>
           )}
 
-          {/* Actions */}
           <div className="mt-3 flex items-center gap-2">
             <a
               href={l.url}
@@ -123,26 +102,22 @@ export function ListingCard({ result, onRate }: ListingCardProps) {
               rel="noopener noreferrer"
               className="inline-flex items-center rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition-colors"
             >
-              View Listing →
+              View Listing &rarr;
             </a>
             {onRate && (
               <div className="flex items-center gap-1 ml-2">
                 <button
-                  onClick={() => onRate(result.id, "interested")}
+                  onClick={() => onRate(result.searchProfileId, result.listingUrl, "interested")}
                   className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                    result.user_rating === "interested"
-                      ? "bg-green-100 text-green-700"
-                      : "text-gray-500 hover:bg-gray-100"
+                    result.userRating === "interested" ? "bg-green-100 text-green-700" : "text-gray-500 hover:bg-gray-100"
                   }`}
                 >
                   👍
                 </button>
                 <button
-                  onClick={() => onRate(result.id, "not_interested")}
+                  onClick={() => onRate(result.searchProfileId, result.listingUrl, "not_interested")}
                   className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                    result.user_rating === "not_interested"
-                      ? "bg-red-100 text-red-700"
-                      : "text-gray-500 hover:bg-gray-100"
+                    result.userRating === "not_interested" ? "bg-red-100 text-red-700" : "text-gray-500 hover:bg-gray-100"
                   }`}
                 >
                   👎

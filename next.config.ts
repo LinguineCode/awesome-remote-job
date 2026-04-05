@@ -1,17 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "export",
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "images.craigslist.org",
-      },
-      {
-        protocol: "https",
-        hostname: "**.autotempest.com",
-      },
-    ],
+    unoptimized: true, // Required for static export
   },
 };
 

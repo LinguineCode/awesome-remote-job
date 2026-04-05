@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 import type { Profile } from "@/types";
 
 export function Nav() {
@@ -12,14 +13,14 @@ export function Nav() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((data) => setUser(data.user))
+    api.me()
+      .then((data) => setUser(data.user as Profile | null))
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await api.logout();
     setUser(null);
     router.push("/");
   };
@@ -35,14 +36,9 @@ export function Nav() {
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link
-              href={user ? "/dashboard" : "/"}
-              className="text-xl font-extrabold text-gray-900"
-            >
-              <span className="mr-1.5">🚗</span>
+            <Link href={user ? "/dashboard" : "/"} className="text-xl font-extrabold text-gray-900">
               CarFinder
             </Link>
-
             {user && (
               <div className="hidden sm:flex items-center gap-1">
                 {navLinks.map((link) => (
@@ -61,15 +57,12 @@ export function Nav() {
               </div>
             )}
           </div>
-
           <div className="flex items-center gap-4">
             {loading ? (
               <div className="h-8 w-20 animate-pulse rounded bg-gray-100" />
             ) : user ? (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600 hidden sm:block">
-                  {user.email}
-                </span>
+                <span className="text-sm text-gray-600 hidden sm:block">{user.email}</span>
                 <button
                   onClick={handleLogout}
                   className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"

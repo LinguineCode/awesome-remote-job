@@ -1,5 +1,3 @@
-// Frontend types — mirrors backend types with camelCase convention
-
 export interface Profile {
   id: string;
   email: string;
@@ -8,6 +6,7 @@ export interface Profile {
   timezone: string;
   isActive: boolean;
   notificationsEnabled: boolean;
+  unsubscribeToken: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,7 +39,7 @@ export interface SearchProfile {
 }
 
 export interface Listing {
-  url: string;
+  url: string; // partition key — the listing URL is the unique ID
   title: string | null;
   price: number | null;
   year: number | null;
@@ -56,7 +55,10 @@ export interface Listing {
   imageUrls: string[];
   sellerType: string | null;
   titleStatus: string | null;
-  source: string;
+  source: string; // "google:facebook.com", "google:craigslist.org", etc.
+  firstSeenAt: string;
+  lastSeenAt: string;
+  expiresAt: number; // TTL — auto-delete after 30 days
 }
 
 export interface SearchResult {
@@ -71,5 +73,36 @@ export interface SearchResult {
   isNotified: boolean;
   notifiedAt: string | null;
   userRating: string | null;
-  listing?: Listing;
+  listing?: Listing; // populated at read time
+}
+
+export interface GoogleSearchResult {
+  title: string;
+  link: string;
+  snippet: string;
+  source: string; // derived from domain
+}
+
+export interface FirecrawlExtraction {
+  year: number | null;
+  make: string | null;
+  model: string | null;
+  trimLevel: string | null;
+  price: number | null;
+  mileage: number | null;
+  transmission: string | null;
+  drivetrain: string | null;
+  color: string | null;
+  location: string | null;
+  description: string | null;
+  sellerType: string | null;
+  titleStatus: string | null;
+  imageUrls: string[];
+}
+
+export interface AIFilterResult {
+  score: number;
+  summary: string;
+  flags: string[];
+  reasoning: string;
 }
