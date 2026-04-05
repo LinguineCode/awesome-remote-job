@@ -19,6 +19,15 @@ resource "aws_dynamodb_table" "profiles" {
     hash_key        = "email"
     projection_type = "ALL"
   }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.main.arn
+  }
 }
 
 # --- Search Profiles table ---
@@ -37,6 +46,15 @@ resource "aws_dynamodb_table" "search_profiles" {
     name = "id"
     type = "S"
   }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.main.arn
+  }
 }
 
 # --- Listings table ---
@@ -53,6 +71,15 @@ resource "aws_dynamodb_table" "listings" {
   ttl {
     attribute_name = "expiresAt"
     enabled        = true
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.main.arn
   }
 }
 
@@ -83,6 +110,15 @@ resource "aws_dynamodb_table" "search_results" {
     hash_key        = "userId"
     projection_type = "ALL"
   }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.main.arn
+  }
 }
 
 # --- Notification Log table ---
@@ -100,5 +136,14 @@ resource "aws_dynamodb_table" "notification_log" {
   attribute {
     name = "sentAt"
     type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.main.arn
   }
 }

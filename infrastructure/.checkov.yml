@@ -1,0 +1,26 @@
+soft-fail: false
+framework: terraform
+compact: true
+skip-check:
+  # Lambda in VPC - not required for functions that call external APIs
+  # (Serper, Firecrawl, OpenAI). VPC would require NAT Gateway ($32/mo+)
+  - CKV_AWS_117
+  # Lambda code signing - deployment uses Terraform with S3 source,
+  # code integrity verified via source_code_hash
+  - CKV_AWS_272
+  # S3 cross-region replication - single-region deployment by design.
+  # Frontend is rebuilt from source, emails are ephemeral (7-day TTL),
+  # access logs are operational data
+  - CKV_AWS_144
+  # CloudFront custom SSL certificate - uses CloudFront default cert.
+  # Custom domain + ACM certificate configured post-deployment
+  - CKV2_AWS_42
+  # CloudFront TLS v1.2 - minimum_protocol_version is set to TLSv1.2_2021
+  # but Checkov requires a custom certificate to validate this
+  - CKV_AWS_174
+  # CloudFront origin failover - S3 is 99.99% available natively,
+  # API Gateway has its own HA. Failover adds complexity without benefit
+  - CKV_AWS_310
+  # WAF Log4j rule - AWSManagedRulesKnownBadInputsRuleSet already includes
+  # Log4JRCE protection. Checkov may not detect rule group contents
+  - CKV2_AWS_47

@@ -8,6 +8,7 @@ import {
   QueryCommand,
   ScanCommand,
   BatchWriteCommand,
+  BatchGetCommand,
 } from "@aws-sdk/lib-dynamodb";
 import type { Profile, SearchProfile, Listing, SearchResult } from "./types";
 
@@ -136,7 +137,7 @@ export async function getListingsBatch(urls: string[]): Promise<Listing[]> {
   for (let i = 0; i < urls.length; i += 100) {
     const batch = urls.slice(i, i + 100);
     const { Responses } = await ddb.send(
-      new (await import("@aws-sdk/lib-dynamodb")).BatchGetCommand({
+      new BatchGetCommand({
         RequestItems: {
           [LISTINGS]: { Keys: batch.map((url) => ({ url })) },
         },

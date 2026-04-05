@@ -10,6 +10,8 @@ resource "aws_scheduler_schedule" "daily_pipeline" {
   # Run at 6 AM UTC daily
   schedule_expression = "cron(0 6 * * ? *)"
 
+  kms_key_arn = aws_kms_key.main.arn
+
   target {
     arn      = aws_lambda_function.daily_pipeline.arn
     role_arn = aws_iam_role.scheduler_role.arn

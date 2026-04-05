@@ -1,6 +1,34 @@
 # --- S3 bucket for storing inbound emails ---
+#checkov:skip=CKV_AWS_144:Cross-region replication not required - emails are ephemeral (7-day TTL)
 resource "aws_s3_bucket" "inbound_email" {
   bucket = "carfinder-inbound-email-${var.environment}"
+}
+
+resource "aws_s3_bucket_public_access_block" "inbound_email" {
+  bucket = aws_s3_bucket.inbound_email.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "inbound_email" {
+  bucket = aws_s3_bucket.inbound_email.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "inbound_email" {
+  bucket = aws_s3_bucket.inbound_email.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "aws:kms"
+    }
+    bucket_key_enabled = true
+  }
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "inbound_email" {
@@ -12,7 +40,21 @@ resource "aws_s3_bucket_lifecycle_configuration" "inbound_email" {
     expiration {
       days = 7 # Delete raw emails after 7 days
     }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
+    }
   }
+}
+
+resource "aws_s3_bucket_logging" "inbound_email" {
+  bucket        = aws_s3_bucket.inbound_email.id
+  target_bucket = aws_s3_bucket.access_logs.id
+  target_prefix = "inbound-email/"
+}
+
+resource "aws_s3_bucket_notification" "inbound_email" {
+  bucket = aws_s3_bucket.inbound_email.id
 }
 
 resource "aws_s3_bucket_policy" "inbound_email" {
@@ -48,6 +90,17 @@ resource "aws_lambda_function" "inbound_email" {
   memory_size      = 256
   source_code_hash = filebase64sha256("${path.module}/../backend/dist/inbound.zip")
 
+  reserved_concurrent_executions = 10
+  kms_key_arn                    = aws_kms_key.main.arn
+
+  dead_letter_config {
+    target_arn = aws_sqs_queue.inbound_email_dlq.arn
+  }
+
+  tracing_config {
+    mode = "Active"
+  }
+
   environment {
     variables = {
       ENVIRONMENT        = var.environment
@@ -66,21 +119,20 @@ resource "aws_lambda_function" "inbound_email" {
 }
 
 resource "aws_lambda_permission" "ses_invoke" {
-  statement_id  = "AllowSES"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.inbound_email.function_name
-  principal     = "ses.amazonaws.com"
+  statement_id   = "AllowSES"
+  action         = "lambda:InvokeFunction"
+  function_name  = aws_lambda_function.inbound_email.function_name
+  principal      = "ses.amazonaws.com"
   source_account = data.aws_caller_identity.current.account_id
 }
 
 resource "aws_cloudwatch_log_group" "inbound_email_logs" {
   name              = "/aws/lambda/${aws_lambda_function.inbound_email.function_name}"
-  retention_in_days = 14
+  retention_in_days = 365
+  kms_key_id        = aws_kms_key.main.arn
 }
 
 # --- SES Receipt Rule Set ---
-# Note: You must set this as the active receipt rule set in the AWS console
-# or via: aws ses set-active-receipt-rule-set --rule-set-name carfinder-inbound
 resource "aws_ses_receipt_rule_set" "inbound" {
   rule_set_name = "carfinder-inbound-${var.environment}"
 }

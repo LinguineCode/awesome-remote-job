@@ -53,7 +53,10 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "ses:SendEmail",
           "ses:SendRawEmail",
         ]
-        Resource = "*"
+        Resource = [
+          aws_ses_email_identity.sender.arn,
+          aws_ses_configuration_set.main.arn,
+        ]
       },
       {
         Effect = "Allow"
@@ -62,7 +65,64 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents",
         ]
-        Resource = "arn:aws:logs:*:*:*"
+        Resource = [
+          aws_cloudwatch_log_group.api_logs.arn,
+          "${aws_cloudwatch_log_group.api_logs.arn}:*",
+          aws_cloudwatch_log_group.pipeline_logs.arn,
+          "${aws_cloudwatch_log_group.pipeline_logs.arn}:*",
+          aws_cloudwatch_log_group.inbound_email_logs.arn,
+          "${aws_cloudwatch_log_group.inbound_email_logs.arn}:*",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords",
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# --- SQS Dead Letter Queues ---
+resource "aws_sqs_queue" "api_dlq" {
+  name                      = "carfinder-api-dlq-${var.environment}"
+  message_retention_seconds = 1209600
+  sqs_managed_sse_enabled   = true
+}
+
+resource "aws_sqs_queue" "pipeline_dlq" {
+  name                      = "carfinder-pipeline-dlq-${var.environment}"
+  message_retention_seconds = 1209600
+  sqs_managed_sse_enabled   = true
+}
+
+resource "aws_sqs_queue" "inbound_email_dlq" {
+  name                      = "carfinder-inbound-email-dlq-${var.environment}"
+  message_retention_seconds = 1209600
+  sqs_managed_sse_enabled   = true
+}
+
+# --- DLQ send permissions ---
+resource "aws_iam_role_policy" "lambda_dlq_policy" {
+  name = "carfinder-lambda-dlq-policy-${var.environment}"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+        ]
+        Resource = [
+          aws_sqs_queue.api_dlq.arn,
+          aws_sqs_queue.pipeline_dlq.arn,
+          aws_sqs_queue.inbound_email_dlq.arn,
+        ]
       }
     ]
   })
@@ -80,6 +140,17 @@ resource "aws_lambda_function" "api" {
   timeout          = 30
   memory_size      = 256
   source_code_hash = filebase64sha256("${path.module}/../backend/dist/api.zip")
+
+  reserved_concurrent_executions = 100
+  kms_key_arn                    = aws_kms_key.main.arn
+
+  dead_letter_config {
+    target_arn = aws_sqs_queue.api_dlq.arn
+  }
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
@@ -110,6 +181,17 @@ resource "aws_lambda_function" "daily_pipeline" {
   memory_size      = 512
   source_code_hash = filebase64sha256("${path.module}/../backend/dist/cron.zip")
 
+  reserved_concurrent_executions = 1
+  kms_key_arn                    = aws_kms_key.main.arn
+
+  dead_letter_config {
+    target_arn = aws_sqs_queue.pipeline_dlq.arn
+  }
+
+  tracing_config {
+    mode = "Active"
+  }
+
   environment {
     variables = {
       ENVIRONMENT       = var.environment
@@ -131,10 +213,12 @@ resource "aws_lambda_function" "daily_pipeline" {
 # CloudWatch log groups
 resource "aws_cloudwatch_log_group" "api_logs" {
   name              = "/aws/lambda/${aws_lambda_function.api.function_name}"
-  retention_in_days = 14
+  retention_in_days = 365
+  kms_key_id        = aws_kms_key.main.arn
 }
 
 resource "aws_cloudwatch_log_group" "pipeline_logs" {
   name              = "/aws/lambda/${aws_lambda_function.daily_pipeline.function_name}"
-  retention_in_days = 14
+  retention_in_days = 365
+  kms_key_id        = aws_kms_key.main.arn
 }

@@ -36,7 +36,8 @@ resource "aws_apigatewayv2_stage" "default" {
 
 resource "aws_cloudwatch_log_group" "api_gw_logs" {
   name              = "/aws/apigateway/carfinder-${var.environment}"
-  retention_in_days = 14
+  retention_in_days = 365
+  kms_key_id        = aws_kms_key.main.arn
 }
 
 # --- Lambda integration ---
@@ -49,10 +50,12 @@ resource "aws_apigatewayv2_integration" "api_lambda" {
 
 # --- Routes ---
 # Catch-all: route everything to the API Lambda which handles routing internally
+# Authorization is handled at the Lambda application level (JWT cookies)
 resource "aws_apigatewayv2_route" "catch_all" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "$default"
-  target    = "integrations/${aws_apigatewayv2_integration.api_lambda.id}"
+  api_id             = aws_apigatewayv2_api.api.id
+  route_key          = "$default"
+  target             = "integrations/${aws_apigatewayv2_integration.api_lambda.id}"
+  authorization_type = "NONE" #checkov:skip=CKV_AWS_309:Auth handled by Lambda JWT validation
 }
 
 # --- Lambda permission for API Gateway ---
